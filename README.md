@@ -1,29 +1,61 @@
 # ps-inline-asm
 
-Allows inline Javascript in Purescript, like this:
+## What is this?
 
-```purs
-module Main where
+A tool for allowing inline javascript in purescript projects.
 
-import Prelude
-import Effect (Effect)
+For example:
 
-main :: Effect Unit
-main = do
-
-  asm "() => console.log('single-quoted')"
-  
-  asm """ () => {
-    console.log('triple-quoted');
-  } """
+```purescript
+add :: Int -> Int -> Int
+add a b = asm """ (function() {
+  const [a, b] = [ #{a}, #{b} ];
+    // ^ Use ${e} to interpolate a purescript expression into javascritp
+  console.log('add called with', a, b);
+  return a + b;
+})() """
 ```
 
-## Q&A
+Also see the `example/` directory.
 
-### Is this production-ready?
+## How do I use it?
 
-No, not in the slightest.
+Run
 
-### How do I use this?
+```
+node ./src/main.js --in=<src> --out=<out>
+```
 
-Don't. But if you really want to, take a look at `run-example.sh`.
+With `<src>` is a directory contianing `.purs` files, among other files. `<src>` will be cloned into `<out>` and then modified so that all inline ASM is compiled into normal Purescript code.
+
+## How does it work?
+
+In short, an expression like
+```
+asm "#{a} + #{b}"
+```
+is turned into
+```
+asm_0 a b
+```
+and a corresponding
+```
+foreign import asm_0 :: forall a. a
+```
+is emitted in the Purescript source, and its implementation
+```
+exports.asm_0 = a => b => a + b;
+```
+is emitted in the foreign module.
+
+## Should I use it?
+
+If you want to!
+
+I wanted inline ASM, so I made this tool. Some people will disagree with the concept. That's fine.
+
+## Is it production-ready?
+
+Not yet!
+
+I don't see any obvious flaws in the general design, but the implementation currently has some issues and is highly untested.
