@@ -7,13 +7,12 @@ A tool for allowing inline javascript in purescript projects.
 For example:
 
 ```purescript
-add :: Int -> Int -> Int
-add a b = asm """ (function() {
-  const [a, b] = [ #{a}, #{b} ];
-    // ^ Use ${e} to interpolate a purescript expression into javascritp
-  console.log('add called with', a, b);
-  return a + b;
-})() """
+square :: Number -> Number
+square x = asm "Math.pow( #{x}, 2 )"
+
+-- Alternative implementation
+square' :: Number -> Number
+square' = asm "x => Math.pow( x, 2 )"
 ```
 
 Also see the `example/` directory.
