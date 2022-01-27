@@ -16,8 +16,14 @@ _b = "asm \""
 main :: Effect Unit
 main = do
 
-  asm """ () => {
-    console.log('Look, ma, no foreign module!');
-  } """
+  (asm_0)
 
-  asm "() => console.log('single-quoted')"
+  (asm_1)
+
+  let n = 100
+  (asm_6 n n n n)
+
+
+foreign import asm_0 :: forall a. a
+foreign import asm_1 :: forall a. a
+foreign import asm_6 :: forall a. a

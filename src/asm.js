@@ -119,16 +119,51 @@ function parseAsm(state) {
 
   const j = state.src.indexOf(quot, state.i);
   if (j === -1) throw ParseError("Asm unended");
-  const asm = state.src.slice(state.i, j);
+  let asm = state.src.slice(state.i, j);
   state.i = j + quot.length;
 
-  const sym = gensym(state);
+  let args;
+  [asm, args] = unterpolate(asm, state);
+
+  const sym = gensym(state, 'asm');
   state.defs[sym] = asm;
-  state.ps += sym;
+
+  state.ps += '(' + [sym, ...args].join(' ') + ')';;
 }
 
-function gensym(state) {
-  return 'asm_' + (state.gsym++);
+function unterpolate(asm, state) {
+  // TODO: this is naive
+
+  let result = '';
+  const bindings = {};
+
+  let i = 0;
+  while (i < asm.length) {
+    if (asm.startsWith('#{', i)) {
+      i += 2;
+      const j = asm.indexOf('}', i);
+      const expr = asm.slice(i , j);
+      i = j + 1;
+      const name = gensym(state, 'arg');
+      bindings[name] = expr;
+      result += name;
+    } else {
+      result += asm[i];
+      i++;
+    }
+  }
+
+  const params = Object.keys(bindings);
+  const args = Object.values(bindings);
+
+  const pre = params.map(a => a + ' => ').join('');
+  result = `${pre}(${result})`;
+
+  return [result, args];
+}
+
+function gensym(state, prefix) {
+  return prefix + '_' + (state.gsym++);
 }
 
 function parseStep(state) {
