@@ -16,15 +16,18 @@ function main() {
 
   const pwd = process.env.PWD;
   const dirIn = path.resolve(pwd, clargs.get('in'));
-  const dirOut = path.resolve(pwd, clargs.get('out'));
+  const inPlace = clargs.get('in-place', false);
+  const dirOut = path.resolve(pwd, clargs.get('out', inPlace ? dirIn : undefined));
 
-  if (dirIn === dirOut)
+  if (!inPlace && dirIn === dirOut)
     fail('Refusing to read and write on the same directory');
 
   console.log(path.relative(pwd, dirIn), '→', path.relative(pwd, dirOut));
 
-  if (fs.existsSync(dirOut)) fs.removeSync(dirOut);
-  fs.copySync(dirIn, dirOut);
+  if (!inPlace) {
+    if (fs.existsSync(dirOut)) fs.removeSync(dirOut);
+    fs.copySync(dirIn, dirOut);
+  }
 
   for (const elem of klaw(dirOut)) {
     const fpath = elem.path;
@@ -54,7 +57,9 @@ function main() {
 
 function help() {
   console.log(`
-    Usage: ps-inline-asm --in=<directory-in> --out=<directory-out>
+    Usage:
+         ps-inline-asm --in=<directory-in> --out=<directory-out>
+      OR ps-inline-asm --in=<directory> --in-place
   `);
 }
 
