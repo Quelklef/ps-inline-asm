@@ -1,6 +1,20 @@
 
 class ParseError extends Error { }
 
+class StringBuilder {
+  constructor(chunks = []) {
+    this.chunks = chunks;
+  }
+
+  add(s) {
+    this.chunks.push(s);
+  }
+
+  build() {
+    return this.chunks.join('');
+  }
+}
+
 exports.handle = function(src) {
 
   let state = {
@@ -10,15 +24,15 @@ exports.handle = function(src) {
     defs: {},  // sym -> expression map
     gsym: 0,  // gensym state
 
-    ps: '',  // purescript out
-    js: '',  // javascript out
+    ps: new StringBuilder(),  // purescript out
+    js: new StringBuilder(),  // javascript out
   };
 
   const parsers = [parseLineComment, parseBlockComment, parseStrLiteral, parseAsm, parseStep];
 
   while (state.i < state.src.length) {
     for (const parser of parsers) {
-      const state_ = clone(state);
+      const state_ = cloneState(state);
       parser(state_);
       if (state_.i > state.i) {
         state = state_
@@ -27,20 +41,23 @@ exports.handle = function(src) {
     }
   }
 
-  state.ps += '\n\n';
-  state.js += '\n';
+  state.ps.add('\n\n');
+  state.js.add('\n');
   for (const sym in state.defs) {
     const def = state.defs[sym];
-    state.js += `\nexports.${sym} = (\n${def}\n);\n`;
-    state.ps += `foreign import ${sym} :: forall a. a\n`;
+    state.js.add(`\nexports.${sym} = (\n${def}\n);\n`);
+    state.ps.add(`foreign import ${sym} :: forall a. a\n`);
   }
 
-  return { ps: state.ps, js: state.js };
+  return { ps: state.ps.build(), js: state.js.build() };
 
 }
 
-function clone(obj) {
-  return JSON.parse(JSON.stringify(obj));  // meh
+function cloneState(state) {
+  const result = { ...state };
+  result.ps = new StringBuilder(state.ps.chunks);
+  result.js = new StringBuilder(state.js.chunks);
+  return result;
 }
 
 function parseLineComment(state) {
@@ -48,7 +65,7 @@ function parseLineComment(state) {
     const from = state.i;
     state.i = state.src.indexOf('\n', state.i);
     if (state.i === -1) state.i = state.src.length;
-    state.ps += state.src.slice(from, state.i);
+    state.ps.add(state.src.slice(from, state.i));
   }
 }
 
@@ -67,7 +84,7 @@ function parseBlockComment(state) {
       state.i++;
     }
   } while (depth > 0);
-  state.ps += state.src.slice(from, state.i);
+  state.ps.add(state.src.slice(from, state.i));
 }
 
 function parseStrLiteral(state) {
@@ -93,7 +110,7 @@ function parseStrLiteral(state) {
     }
   }
 
-  state.ps += state.src.slice(from, state.i);
+  state.ps.add(state.src.slice(from, state.i));
 }
 
 function parseAsm(state) {
@@ -128,7 +145,7 @@ function parseAsm(state) {
   const sym = gensym(state, 'asm');
   state.defs[sym] = asm;
 
-  state.ps += '(' + [sym, ...args].join(' ') + ')';;
+  state.ps.add('(' + [sym, ...args].join(' ') + ')');
 }
 
 function unterpolate(asm, state) {
@@ -167,6 +184,8 @@ function gensym(state, prefix) {
 }
 
 function parseStep(state) {
-  state.ps += state.src[state.i];
+  // TODO: Slow. Most cases will hit parseStep, which means most of
+  //       the source file is going into the StringBuidler char-by-char.
+  state.ps.add(state.src[state.i]);
   state.i++;
 }
