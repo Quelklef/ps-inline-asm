@@ -44,10 +44,12 @@ function main() {
 
     fs.writeFileSync(fps, out.ps);
 
-    if (fs.existsSync(fjs)) {
-      fs.appendFileSync(fjs, out.js);
-    } else {
-      fs.writeFileSync(fjs, out.js);
+    if (out.js.trim() !== '') {
+      if (fs.existsSync(fjs)) {
+        fs.appendFileSync(fjs, out.js);
+      } else {
+        fs.writeFileSync(fjs, out.js);
+      }
     }
   }
 
