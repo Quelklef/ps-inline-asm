@@ -14,7 +14,7 @@ getUrlArgs_impl1 = impl (/\)
 
 -- Same thing, implemented using interpolation
 getUrlArgs_impl2 :: Effect (Array (String /\ String))
-getUrlArgs_impl2 = (asm_973 (/\))
+getUrlArgs_impl2 = (asm_973 ((/\)))
 
 
 foreign import asm_569 :: forall a. a

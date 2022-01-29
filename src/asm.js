@@ -168,7 +168,7 @@ function unterpolate(asm) {
       i = j + '}'.length;
       const name = 'arg_' + i;
       result.add('(' + name + ')');
-      bindings[name] = expr;
+      bindings[name] = '(' + expr + ')';
       k = i;
     }
 

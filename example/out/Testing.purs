@@ -1,29 +1,40 @@
 module Main where
 
-import Prelude
-import Effect
+-- test: inline asm (single-quoted)
+(asm_76)
 
+-- test: inline asm (triple-quoted)
+(asm_174)
+
+-- test: line comments
 -- asm "
 
+-- test: block comments
 {- asm " -}
 
-_a :: String
-_a = """ asm " """ -- "
+-- test: nested block comments
+{- {- asm " -} -}
 
-_b :: String
-_b = "asm \""
+-- test: string literal (single-quoted)
+"asm \""
 
-main :: Effect Unit
-main = do
+-- test: string literal (triple-quoted)
+""" asm " """ -- "
 
-  (asm_243)
+-- test: interpolation
+let n = 12
+in (asm_472 (n) (n))
 
-  (asm_287)
+-- test: interpolation with JS quoting
+let n = 12
+in (asm_999 (n) (n))
 
-  let n = 100
-  (asm_460 n)
+-- test: interpolation of ps expressions
+(asm_1100 ( 1 + 1 ) ( (+) ) ( "))
 
 
-foreign import asm_243 :: forall a. a
-foreign import asm_287 :: forall a. a
-foreign import asm_460 :: forall a. a
+foreign import asm_76 :: forall a. a
+foreign import asm_174 :: forall a. a
+foreign import asm_472 :: forall a. a
+foreign import asm_999 :: forall a. a
+foreign import asm_1100 :: forall a. a
