@@ -1,7 +1,7 @@
 
 
-exports.asm_0 = (
-( mkTup => () => {
+exports.asm_569 = (
+ mkTup => () => {
     const params = new URL(window.location.href).searchParams;
     const result = [];
     for (const key of params.keys()) {
@@ -9,12 +9,12 @@ exports.asm_0 = (
       const tup = mkTup(key)(val);
     }
     return result;
-  } )
+  } 
 );
 
-exports.asm_2 = (
-arg_1 => ( () => {
-  const mkTup = arg_1;  // Pull (/\) from PureScript
+exports.asm_973 = (
+arg_32 =>  () => {
+  const mkTup = (arg_32);  // Pull (/\) from PureScript
   const params = new URL(window.location.href).searchParams;
   const result = [];
   for (const key of params.keys()) {
@@ -22,5 +22,5 @@ arg_1 => ( () => {
     const tup = mkTup(key)(val);
   }
   return result;
-} )
+} 
 );

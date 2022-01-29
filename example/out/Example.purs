@@ -10,12 +10,12 @@ getUrlArgs_impl1 = impl (/\)
   where
 
   impl :: (String -> String -> String /\ String) -> Effect (Array (String /\ String))
-  impl = (asm_0)
+  impl = (asm_569)
 
 -- Same thing, implemented using interpolation
 getUrlArgs_impl2 :: Effect (Array (String /\ String))
-getUrlArgs_impl2 = (asm_2 (/\))
+getUrlArgs_impl2 = (asm_973 (/\))
 
 
-foreign import asm_0 :: forall a. a
-foreign import asm_2 :: forall a. a
+foreign import asm_569 :: forall a. a
+foreign import asm_973 :: forall a. a

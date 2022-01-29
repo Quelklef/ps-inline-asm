@@ -17,175 +17,174 @@ class StringBuilder {
 
 exports.handle = function(src) {
 
-  let state = {
-    src,  // source text
-    i: 0,  // source pointer
+  // source pointer
+  let i = 0;
 
-    defs: {},  // sym -> expression map
-    gsym: 0,  // gensym state
+  // source anchor
+  // keeps track of the most recent index at which we emitted text
+  let k = 0;
 
-    ps: new StringBuilder(),  // purescript out
-    js: new StringBuilder(),  // javascript out
-  };
+  // symbol -> expression map
+  let defs = {};
 
-  const parsers = [parseLineComment, parseBlockComment, parseStrLiteral, parseAsm, parseStep];
+  // purescript/javascript output
+  let ps = new StringBuilder();
+  let js = new StringBuilder();
 
-  while (state.i < state.src.length) {
-    for (const parser of parsers) {
-      const state_ = cloneState(state);
-      parser(state_);
-      if (state_.i > state.i) {
-        state = state_
-        break;
+
+  while (i < src.length) {
+
+    // line comments
+    if (src.startsWith('--', i)) {
+      i = src.indexOf('\n', i);
+      if (i === -1) i = src.length;
+    }
+
+    // block comments
+    else if (src.startsWith('{-', i)) {
+      let depth = 0;
+      do {
+        if (src.startsWith('{-', i)) {
+          depth++;
+          i += 2;
+        } else if (src.startsWith('-}', i)) {
+          depth--;
+          i += 2;
+        } else {
+          i++;
+        }
+      } while (depth > 0);
+    }
+
+    // string literals
+    else if (src.startsWith('"', i)) {
+      const quot = src.startsWith('"""', i) ? '"""' : '"';
+      i += quot.length;
+      while (i < src.length) {
+        if (src.startsWith(quot, i)) {
+          i += quot.length;
+          break;
+        } else if (src[i] === '\\') {
+          i += 2;
+        } else {
+          i++;
+        }
       }
     }
-  }
 
-  state.ps.add('\n\n');
-  state.js.add('\n');
-  for (const sym in state.defs) {
-    const def = state.defs[sym];
-    state.js.add(`\nexports.${sym} = (\n${def}\n);\n`);
-    state.ps.add(`foreign import ${sym} :: forall a. a\n`);
-  }
+    // ps-inline-asm syntax
+    else if (
+      src.startsWith('asm', i)
+      && [undefined, ' ', '\n', '"'].includes(src[i + 'asm'.length])
+    ) {
 
-  return { ps: state.ps.build(), js: state.js.build() };
+      const i0 = i;
+      i += 'asm'.length;
+      while (' \n'.includes(src[i])) i++;
 
-}
+      const quot = src.startsWith('"""', i) ? '"""' : '"';
+      i += quot.length;
 
-function cloneState(state) {
-  const result = { ...state };
-  result.ps = new StringBuilder(state.ps.chunks);
-  result.js = new StringBuilder(state.js.chunks);
-  return result;
-}
+      const j = src.indexOf(quot, i);
+      if (j === -1) throw ParseError("Missing end quote");
+      const interpolated = src.slice(i, j);
+      i = j + quot.length;
 
-function parseLineComment(state) {
-  if (state.src.startsWith('--', state.i)) {
-    const from = state.i;
-    state.i = state.src.indexOf('\n', state.i);
-    if (state.i === -1) state.i = state.src.length;
-    state.ps.add(state.src.slice(from, state.i));
-  }
-}
+      const [unterpolated, args] = unterpolate(interpolated);
 
-function parseBlockComment(state) {
-  if (!state.src.startsWith('{-', state.i)) return;
-  const from = state.i;
-  let depth = 0;
-  do {
-    if (state.src.startsWith('{-', state.i)) {
-      depth += 1;
-      state.i += 2;
-    } else if (state.src.startsWith('-}', state.i)) {
-      depth -= 1;
-      state.i += 2;
-    } else {
-      state.i++;
+      const sym = 'asm_' + i;
+      defs[sym] = unterpolated;
+
+      ps.add(src.slice(k, i0))
+      ps.add('(' + [sym, ...args].join(' ') + ')');
+      k = i;
+
     }
-  } while (depth > 0);
-  state.ps.add(state.src.slice(from, state.i));
-}
 
-function parseStrLiteral(state) {
-  const from = state.i;
-
-  let quot;
-  if (state.src.startsWith('"""', state.i))
-    quot = '"""';
-  else if (state.src.startsWith('"', state.i))
-    quot = '"';
-  else
-    return;
-
-  state.i += quot.length;
-  while (state.i < state.src.length) {
-    if (state.src.startsWith(quot, state.i)) {
-      state.i += quot.length;
-      break;
-    } else if (state.src[state.i] === '\\') {
-      state.i += 2;
-    } else {
-      state.i++;
+    else {
+      i++;
     }
+
   }
 
-  state.ps.add(state.src.slice(from, state.i));
+  ps.add(src.slice(k, i));
+
+  ps.add('\n\n');
+  js.add('\n');
+  for (const sym in defs) {
+    const def = defs[sym];
+    js.add(`\nexports.${sym} = (\n${def}\n);\n`);
+    ps.add(`foreign import ${sym} :: forall a. a\n`);
+  }
+
+  return { ps: ps.build(), js: js.build() };
+
 }
 
-function parseAsm(state) {
-  if (!(
-    state.src.startsWith('asm', state.i)
-    && ( state.i + 'asm'.length === state.src.length
-         || state.src[state.i + 'asm'.length].match(/"|\s/)
-  )))
-    return;
+function unterpolate(asm) {
 
-  state.i += 'asm'.length;
-  while (state.src[state.i].match(/\s/)) state.i++;
-
-  let quot;
-  if (state.src.startsWith('"""', state.i))
-    quot = '"""';
-  else if (state.src.startsWith('"', state.i))
-    quot = '"';
-  else
-    throw ParseError("Expected quotation marks after 'asm'");
-
-  state.i += quot.length;
-
-  const j = state.src.indexOf(quot, state.i);
-  if (j === -1) throw ParseError("Asm unended");
-  let asm = state.src.slice(state.i, j);
-  state.i = j + quot.length;
-
-  let args;
-  [asm, args] = unterpolate(asm, state);
-
-  const sym = gensym(state, 'asm');
-  state.defs[sym] = asm;
-
-  state.ps.add('(' + [sym, ...args].join(' ') + ')');
-}
-
-function unterpolate(asm, state) {
-  // TODO: this is naive
-
-  let result = '';
+  const result = new StringBuilder();
   const bindings = {};
 
   let i = 0;
+  let k = 0;
+
   while (i < asm.length) {
-    if (asm.startsWith('#{', i)) {
-      i += 2;
+
+    // line comments
+    if (asm.startsWith('//', i)) {
+      i = asm.indexOf('\n', i);
+      if (i === -1) i = asm.length;
+    }
+
+    // block comments
+    else if (asm.startsWith('/*', i)) {
+      i = asm.indexOf('*/', i) + '*/'.length;
+    }
+
+    // string literals
+    else if ('"\'`'.includes(asm[i])) {
+      const quot = asm[i];
+      i += quot.length;
+      while (i < asm.length) {
+        if (asm.startsWith(quot, i)) {
+          i += quot.length;
+          break;
+        } else if (asm[i] === '\\') {
+          i += 2;
+        } else {
+          i++;
+        }
+      }
+    }
+
+    // interpolated expression
+    else if (asm.startsWith('#{', i)) {
+      result.add(asm.slice(k, i));
+      i += '#{'.length;
       const j = asm.indexOf('}', i);
+      if (j === -1) throw ParseError("Unclosed interpolation");
       const expr = asm.slice(i , j);
-      i = j + 1;
-      const name = gensym(state, 'arg');
+      i = j + '}'.length;
+      const name = 'arg_' + i;
+      result.add('(' + name + ')');
       bindings[name] = expr;
-      result += name;
-    } else {
-      result += asm[i];
+      k = i;
+    }
+
+    else {
       i++;
     }
+
   }
+
+  result.add(asm.slice(k, i));
 
   const params = Object.keys(bindings);
   const args = Object.values(bindings);
 
   const pre = params.map(a => a + ' => ').join('');
-  result = `${pre}(${result})`;
+  const final = pre + result.build();
 
-  return [result, args];
-}
-
-function gensym(state, prefix) {
-  return prefix + '_' + (state.gsym++);
-}
-
-function parseStep(state) {
-  // TODO: Slow. Most cases will hit parseStep, which means most of
-  //       the source file is going into the StringBuidler char-by-char.
-  state.ps.add(state.src[state.i]);
-  state.i++;
+  return [final, args];
 }
