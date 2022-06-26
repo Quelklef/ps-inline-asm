@@ -1,10 +1,18 @@
-{ pkgs ? import <nixpkgs> {} }: let
+let
 
+pkgs-default =
+  let fetched = builtins.fetchGit {
+        url = "https://github.com/NixOS/nixpkgs";
+        rev = "7e89775a9e618fd494558b2e78f510e9e4ec6b27";
+      };
+  in import fetched {};
+
+in { pkgs ? pkgs-default }: let
 
 npmlock2nix =
   let fetched = builtins.fetchGit {
         url = "https://github.com/tweag/npmlock2nix.git";
-        rev = "8ada8945e05b215f3fffbd10111f266ea70bb502";
+        rev = "5c4f247688fc91d665df65f71c81e0726621aaa8";
       };
   in import fetched { inherit pkgs; };
 
