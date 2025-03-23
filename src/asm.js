@@ -101,6 +101,7 @@ exports.handle = function(src) {
 
     }
 
+    // usual case
     else {
       i++;
     }
