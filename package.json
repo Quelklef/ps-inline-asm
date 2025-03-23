@@ -9,6 +9,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+    "ps-inline-asm": "src/main.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Quelklef/ps-inline-asm.git"

@@ -3,42 +3,23 @@ let
 pkgs-default =
   let fetched = builtins.fetchGit {
         url = "https://github.com/NixOS/nixpkgs";
-        rev = "7e89775a9e618fd494558b2e78f510e9e4ec6b27";
+        rev = "e448c1c1e6d3c3edb58c356469f64c578b12d0ff";
       };
-  in import fetched {};
+  in import fetched { system = builtins.currentSystem; };
 
 in { pkgs ? pkgs-default }: let
-
-npmlock2nix =
-  let fetched = builtins.fetchGit {
-        url = "https://github.com/tweag/npmlock2nix.git";
-        rev = "5c4f247688fc91d665df65f71c81e0726621aaa8";
-      };
-  in import fetched { inherit pkgs; };
 
 gitignoreSource =
   let fetched = builtins.fetchGit {
         url = "https://github.com/hercules-ci/gitignore.nix";
-        rev = "80463148cd97eebacf80ba68cf0043598f0d7438";
+        rev = "637db329424fd7e46cf4185293b9cc8c88c95394";
       };
   in (import fetched { inherit (pkgs) lib; }).gitignoreSource;
 
-node_modules = npmlock2nix.node_modules { src = gitignoreSource ./.; };
-
-
-deriv = pkgs.stdenv.mkDerivation {
+in pkgs.buildNpmPackage {
   name = "ps-inline-asm";
-  src = ./src;
-  installPhase = ''
-    mkdir $out
-    cp -r ${node_modules}/node_modules $out
-    cp -r $src/. $out
-  '';
-};
+  src = gitignoreSource ./.;
+  npmDepsHash = "sha256-vHWUg5dThDiVyTlUZDjau/qQX9SzRaqK1UJlCYIdY6c=";
+  dontNpmBuild = true;
+}
 
-script = pkgs.writeScriptBin "ps-inline-asm" ''
-  #!${pkgs.bash}/bin/bash
-  ${pkgs.nodejs}/bin/node ${deriv}/main.js "$@"
-'';
-
-in script
