@@ -96,7 +96,7 @@ exports.handle = function(src) {
       defs[sym] = unterpolated;
 
       ps.add(src.slice(k, i0))
-      ps.add('(' + [sym, ...args].join(' ') + ')');
+      ps.add(args.length === 0 ? sym : '(' + [sym, ...args].join(' ') + ')');
       k = i;
 
     }
@@ -113,7 +113,12 @@ exports.handle = function(src) {
   js.add('\n');
   for (const sym in defs) {
     const def = defs[sym];
-    js.add(`\nexports.${sym} = (\n${def}\n);\n`);
+    const defAsAssignmentRhs = (
+      def.includes("\n") || def.includes("//")
+        ? "(\n" + def + "\n);"
+        : def.trim() + ";"
+    );
+    js.add(`\nexport const ${sym} = ${defAsAssignmentRhs}\n`);
     ps.add(`foreign import ${sym} :: forall a. a\n`);
   }
 
