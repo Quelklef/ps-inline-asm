@@ -1,26 +1,15 @@
 
 
-exports.asm_569 = (
- mkTup => () => {
+export const asm_448 = (
+arg_201 => 
+  function() {
     const params = new URL(window.location.href).searchParams;
     const result = [];
     for (const key of params.keys()) {
       const val = params.get(key);
-      const tup = mkTup(key)(val);
+      const tup = (arg_201)(key)(val);
     }
     return result;
-  } 
-);
-
-exports.asm_973 = (
-arg_32 =>  () => {
-  const mkTup = (arg_32);  // Pull (/\) from PureScript
-  const params = new URL(window.location.href).searchParams;
-  const result = [];
-  for (const key of params.keys()) {
-    const val = params.get(key);
-    const tup = mkTup(key)(val);
   }
-  return result;
-} 
+  
 );
