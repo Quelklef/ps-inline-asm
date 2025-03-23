@@ -1,44 +1,34 @@
 
 
-exports.asm_76 = (
- () => 'const' 
+export const asm_173 = 100;
+
+export const asm_240 = 1 * 20 + 5;
+
+export const asm_319 = (
+
+      1 * 20
+      + 5
+    
 );
 
-exports.asm_174 = (
+export const asm_492 = (
 
-  (function() {
-    one();
-    another();
-  })()
-
+      function() { let result = 20;
+                   result += 5;
+                   return result; }()
+    
 );
 
-exports.asm_472 = (
-arg_14 => arg_21 =>  (0.5) * ((arg_14) + (arg_21)) 
+export const asm_957 = arg_4 => arg_15 => (arg_4) + (arg_15) + 5;
+
+export const asm_1158 = '#{n}';
+
+export const asm_1254 = "#{n}";
+
+export const asm_1340 = `#{n}`;
+
+export const asm_1547 = (
+ 10 // #{n} 
 );
 
-exports.asm_999 = (
-arg_30 => arg_315 => 
-() => {
-  console.log(   (arg_30)   );            // should bind
-
-  console.log( ' #{n} ' );            // should not bind
-  console.log( " #{n} " );            // should not bind
-
-  console.log(  ` ${   #{n}   } ` );  // should bind
-  console.log(  `      #{n}     ` );  // should not bind
-  console.log(  ` ${ ` (arg_315) ` } ` );  // should not bind
-
-  /* console.log(   #{n}   ); */      // should not bind
-  // console.log(   #{n}   );         // should not bind
-}
-
-);
-
-exports.asm_1100 = (
-arg_13 => arg_24 => arg_32 => 
-  (arg_13)
-  (arg_24)
-  (arg_32)" }  // jinkies
-
-);
+export const asm_1635 = 10 /* #{n} */;

@@ -1,56 +1,80 @@
-module Main where
+module Testing where
 
--- test: inline asm (single-quoted)
-asm " () => 'const' "
+import Prelude
+import Effect (Effect)
+import Effect.Console (log)
 
--- test: inline asm (triple-quoted)
-asm """
-  (function() {
-    one();
-    another();
-  })()
-"""
 
--- test: line comments
--- asm "
+main :: Effect Unit
+main = do
 
--- test: block comments
-{- asm " -}
+  test "invoked as single-quoted"
+    100 (asm "100")
 
--- test: nested block comments
-{- {- asm " -} -}
+  test "invoked as triple-quoted"
+    25 (asm """ 1 * 20 + 5 """)
 
--- test: string literal (single-quoted)
-"asm \""
+  test "invoked as mult-line"
+    25 (asm """
+      1 * 20
+      + 5
+    """)
 
--- test: string literal (triple-quoted)
-""" asm " """ -- "
+  test "invoked as multi-line with IIFE"
+    25 (asm """
+      function() { let result = 20;
+                   result += 5;
+                   return result; }()
+    """)
 
--- test: interpolation
-let n = 12
-in asm " (0.5) * (#{n} + #{n}) "
+  -- interpolation ignored in ps line comment
+  -- asm "
 
--- test: interpolation with JS quoting
-let n = 12
-in asm """
-() => {
-  console.log(   #{n}   );            // should bind
+  -- interpolation ignored in ps block comment
+  {- asm " -}
 
-  console.log( ' #{n} ' );            // should not bind
-  console.log( " #{n} " );            // should not bind
+  -- broken
+  -- interpolation ignored in ps nested block comment
+  -- {- {- asm " -} -}
 
-  console.log(  ` ${   #{n}   } ` );  // should bind
-  console.log(  `      #{n}     ` );  // should not bind
-  console.log(  ` ${ ` #{n} ` } ` );  // should not bind
+  test "not invoked when in string (single-quoted)"
+    ("as" <> "m \"") "asm \""
 
-  /* console.log(   #{n}   ); */      // should not bind
-  // console.log(   #{n}   );         // should not bind
-}
-"""
+  test "not invoked when in string (triple-quoted)"
+    ("as" <> "m \" ") """asm " """ -- "
 
--- test: interpolation of ps expressions
-asm """
-  #{ 1 + 1 }
-  #{ (+) }
-  #{ "}" }  // jinkies
-"""
+  test "interpolation works"
+    26 (let n = 10 in asm "#{n} + #{n + 1} + 5")
+
+  -- broken
+  -- test "interpolation works when contains an end squiggly"
+  --   "}" (asm """ #{ "}" } """)
+
+  test "interpolation is ignored in JS string (single-quoted)"
+    "#{n}" (asm " '#{n}' ")
+
+  test "interpolation is ignored in JS string (double-quoted)"
+    "#{n}" (asm """ "#{n}" """)
+
+  test "interpolation is ignored in JS string (backticks)"
+    "#{n}" (asm "`#{n}`")
+
+  -- broken
+  -- test "interpolation works within JS backtick interpolation"
+  --   "good" (asm """ `go${ #{"od"} }` """)
+
+  test "interpolation is ignored in JS comment (line)"
+    10 (asm " 10 // #{n} ")
+
+  test "interpolation is ignored in JS comment (block)"
+    10 (asm " 10 /* #{n} */ ")
+
+
+test :: forall a. Eq a => Show a => String -> a -> a -> Effect Unit
+test name expected got = do
+  let passed = expected == got
+  log $
+    (if passed then "🟢" else "🔴")
+    <> " " <> name
+    <> (if passed then "" else ": " <> show expected <> " /= " <> show got)
+
